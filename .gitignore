@@ -1,0 +1,17 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Claude Code local state
+.claude/projects/
+.claude/todos/
+.claude/statsig/
+.claude/shell-snapshots/
+
+# Local secrets / scratch
+*.env
+*.local
+scratch/
