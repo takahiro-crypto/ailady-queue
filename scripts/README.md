@@ -31,15 +31,33 @@ pwsh -File C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1 -P
 7. 設定タブ：
    - 「タスクを停止するまでの時間」を 30 分
 
-### タスクスケジューラへの登録（CLI / schtasks）
+### タスクスケジューラへの一括登録（推奨）
+
+PC1 〜 PC6 を 1 コマンドで登録するスクリプトを用意しています：
 
 ```pwsh
-schtasks /Create /TN "AILady Worker PC1" /SC MINUTE /MO 5 `
-  /TR "pwsh -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1' -PcDir pc1-billing" `
-  /RL HIGHEST
+cd C:\Users\sugaw\claude-projects\ailady-queue\scripts
+.\install-schtasks.ps1
 ```
 
-PC1 〜 PC6 ぶん同じパターンで登録。`/TN` と `-PcDir` をそれぞれ書き換える。
+確認プロンプトで `yes` と答えると 6 タスクが作られます。
+このスクリプトは AI エージェント（claude -p）を自動定期発火させるので、
+**必ず最初に内容を読んでから**実行してください。
+
+解除：
+```pwsh
+.\uninstall-schtasks.ps1
+```
+
+### タスクスケジューラへの登録（手動 / 1 PC ずつ）
+
+```pwsh
+schtasks /Create /TN "AILady Worker PC1-BILLING" /SC MINUTE /MO 5 `
+  /TR "pwsh -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1' -PcDir pc1-billing" `
+  /F
+```
+
+PC1 〜 PC6 ぶん `/TN` と `-PcDir` を書き換えて繰り返す。
 
 ### 司令塔（PC0）は登録しない
 
