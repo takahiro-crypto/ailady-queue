@@ -1,4 +1,4 @@
-# install-schtasks.ps1 — 6 ワーカー PC ぶんの Windows スケジュールタスクを一括登録
+﻿# install-schtasks.ps1 — 6 ワーカー PC ぶんの Windows スケジュールタスクを一括登録
 #
 # 各 PC で実行する想定。実行すると以下のタスクが作られる:
 #   "AILady Worker PC1-BILLING" 〜 "AILady Worker PC6-QUOTE"

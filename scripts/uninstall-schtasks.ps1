@@ -1,4 +1,4 @@
-# uninstall-schtasks.ps1 — AILady Worker タスクを全削除
+﻿# uninstall-schtasks.ps1 — AILady Worker タスクを全削除
 #
 # 使い方:
 #   PS> .\uninstall-schtasks.ps1

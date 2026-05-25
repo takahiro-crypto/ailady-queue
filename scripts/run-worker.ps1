@@ -1,4 +1,4 @@
-# run-worker.ps1 — AILady ワーカー PC 用 Claude Code 起動スクリプト
+﻿# run-worker.ps1 — AILady ワーカー PC 用 Claude Code 起動スクリプト
 #
 # Windows タスクスケジューラから 5〜10 分おきに呼ぶ想定。
 # inbox/ に新カードがあれば claude -p で非対話処理を起こす。
