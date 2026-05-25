@@ -11,6 +11,9 @@ Thumbs.db
 .claude/statsig/
 .claude/shell-snapshots/
 
+# Worker runtime logs (per-PC, local only)
+.run-worker.log
+
 # Local secrets / scratch
 *.env
 *.local
