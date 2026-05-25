@@ -15,7 +15,13 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$PcDir,
 
-    [string]$QueueRoot = $(if ($env:AILADY_QUEUE_ROOT) { $env:AILADY_QUEUE_ROOT } else { "C:\Users\sugaw\claude-projects\ailady-queue" })
+    [string]$QueueRoot = $(if ($env:AILADY_QUEUE_ROOT) { $env:AILADY_QUEUE_ROOT } else { "C:\Users\sugaw\claude-projects\ailady-queue" }),
+
+    # 自動承認モード（デフォルト：acceptEdits）
+    # 値: plan / default / acceptEdits / bypassPermissions
+    # ワーカーは inbox/outbox/done のファイル編集が必須なので acceptEdits を既定に。
+    # plan / default を指定するとプロンプト待ちで実質止まる（テスト時のみ使う）。
+    [string]$PermissionMode = "acceptEdits"
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,7 +61,9 @@ Push-Location $workDir
 try {
     # claude CLI を非対話 (-p / --print) で起動
     # 注: claude コマンドが PATH にあること
-    & claude -p $prompt 2>&1 | Tee-Object -FilePath $logFile -Append
+    # --permission-mode acceptEdits でファイル編集を自動承認
+    # --add-dir $workDir で作業ディレクトリを明示
+    & claude -p $prompt --permission-mode $PermissionMode --add-dir $workDir 2>&1 | Tee-Object -FilePath $logFile -Append
     $exit = $LASTEXITCODE
     "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$PcDir] claude exited with code $exit" | Out-File -FilePath $logFile -Append -Encoding utf8
 }
