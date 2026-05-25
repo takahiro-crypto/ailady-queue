@@ -15,7 +15,12 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$PcDir,
 
-    [string]$QueueRoot = $(if ($env:AILADY_QUEUE_ROOT) { $env:AILADY_QUEUE_ROOT } else { "C:\Users\sugaw\claude-projects\ailady-queue" }),
+    # QueueRoot の決定順（先勝ち）:
+    #   1. -QueueRoot 明示指定
+    #   2. 環境変数 AILADY_QUEUE_ROOT
+    #   3. このスクリプトが置かれているディレクトリの 1 つ上
+    #      （ailady-queue/scripts/run-worker.ps1 を想定）
+    [string]$QueueRoot = $(if ($env:AILADY_QUEUE_ROOT) { $env:AILADY_QUEUE_ROOT } else { Split-Path -Parent $PSScriptRoot }),
 
     # 自動承認モード（デフォルト：acceptEdits）
     # 値: plan / default / acceptEdits / bypassPermissions
