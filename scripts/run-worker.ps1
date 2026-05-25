@@ -46,13 +46,18 @@ if (-not $pendingCards -or $pendingCards.Count -eq 0) {
 $prompt = @"
 inbox/ ディレクトリに未処理のタスクカード（.md）があります。
 
-次の手順で処理してください:
-1. inbox/ 内の最も古いカード 1 件を読む
-2. カードの「やってほしいこと」と「完了条件」に従って成果物を outbox/ に作成
-3. 不明点があれば outbox/<カードID>-questions.md に列挙して止める
-4. 完了したら inbox の元カードを done/ に移動
+次の手順で処理してください。**各ステップを必ずファイル操作ツールで実行すること**（コマンドの提案だけで止まらない）。
 
-あなたの役割と禁止事項は CLAUDE.md を必ず参照してください。
+1. inbox/ 内の最も古いカード 1 件を Read で読む
+2. CLAUDE.md を Read で読み、自分の役割と禁止事項を確認する
+3. カードの「やってほしいこと」と「完了条件」に従って成果物を作成し、
+   Write ツールで outbox/<カードID>-result.md に書き出す
+4. 不明点があれば Write ツールで outbox/<カードID>-questions.md に列挙して止める
+5. 完了したら **Bash ツールで** \`mv inbox/<カードID>.md done/<カードID>.md\` を実行してカードを done/ に移動する
+   （\`git mv\` は使わない。コミットは別途行うため）
+6. 最後に状況を1〜3行で報告する（処理したカード ID と、outbox に書いたファイル名）
+
+重要：手順 3 と 5 は提案だけで止めず、必ずツール実行で完了させること。
 "@
 
 "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$PcDir] $($pendingCards.Count) card(s) pending, invoking claude" | Out-File -FilePath $logFile -Append -Encoding utf8
