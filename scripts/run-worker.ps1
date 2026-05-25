@@ -26,7 +26,10 @@ param(
     # 値: plan / default / acceptEdits / bypassPermissions
     # ワーカーは inbox/outbox/done のファイル編集が必須なので acceptEdits を既定に。
     # plan / default を指定するとプロンプト待ちで実質止まる（テスト時のみ使う）。
-    [string]$PermissionMode = "acceptEdits"
+    [string]$PermissionMode = "acceptEdits",
+
+    # -NoGitSync を付けると git pull / commit / push をスキップする（テストや非 git 環境用）
+    [switch]$NoGitSync
 )
 
 $ErrorActionPreference = "Stop"
@@ -52,6 +55,25 @@ Write-Host ("=" * 70) -ForegroundColor DarkGray
 Write-Host ("[{0}] AILady worker: {1}" -f (Get-Date -Format 'HH:mm:ss'), $PcDir) -ForegroundColor Cyan
 Write-Host ("  work dir : {0}" -f $workDir) -ForegroundColor DarkGray
 Write-Host ("  inbox    : {0}" -f $inboxDir) -ForegroundColor DarkGray
+
+# ---------- git pull（最新の inbox を取り込む）----------
+$isGitRepo = (Test-Path (Join-Path $QueueRoot ".git"))
+if (-not $NoGitSync -and $isGitRepo) {
+    Push-Location $QueueRoot
+    try {
+        Write-Host "  git pull : fetching latest from origin..." -ForegroundColor DarkGray
+        $pullOut = & git pull --ff-only 2>&1
+        $pullExit = $LASTEXITCODE
+        foreach ($line in $pullOut) { Write-Host ("             {0}" -f $line) -ForegroundColor DarkGray }
+        if ($pullExit -ne 0) {
+            Write-Host "  [WARN] git pull failed (continuing with local state). Check for uncommitted changes or merge conflicts." -ForegroundColor Yellow
+        }
+    } finally { Pop-Location }
+} elseif ($NoGitSync) {
+    Write-Host "  git pull : skipped (-NoGitSync)" -ForegroundColor DarkGray
+} elseif (-not $isGitRepo) {
+    Write-Host "  git pull : skipped (not a git repo)" -ForegroundColor DarkGray
+}
 
 # inbox に処理待ちカード（.md, doneに移動されていないもの）があるか確認
 $pendingCards = Get-ChildItem -Path $inboxDir -Filter "*.md" -File -ErrorAction SilentlyContinue
@@ -120,8 +142,42 @@ try {
         Write-Host "  WARN     : inbox にカードが残っています（移動忘れ？）" -ForegroundColor Yellow
         foreach ($c in $afterInbox) { Write-Host ("             - {0}" -f $c.Name) -ForegroundColor Yellow }
     }
-    Write-Host ("=" * 70) -ForegroundColor DarkGray
 }
 finally {
     Pop-Location
 }
+
+# ---------- git commit + push（成果物を origin に上げる）----------
+if (-not $NoGitSync -and $isGitRepo -and $exit -eq 0) {
+    Push-Location $QueueRoot
+    try {
+        # この PC のディレクトリ配下に変更があるかチェック
+        $changes = & git status --porcelain "$PcDir" 2>&1
+        if ($changes) {
+            $changeCount = (@($changes) | Where-Object { $_ }).Count
+            Write-Host ("  git push : staging {0} change(s) in {1}/" -f $changeCount, $PcDir) -ForegroundColor DarkGray
+            & git add "$PcDir" 2>&1 | Out-Null
+
+            $msg = "feat($PcDir): worker processed inbox (auto-commit)"
+            $commitOut = & git commit -m $msg 2>&1
+            $commitExit = $LASTEXITCODE
+            if ($commitExit -eq 0) {
+                $pushOut = & git push 2>&1
+                $pushExit = $LASTEXITCODE
+                foreach ($line in $pushOut) { Write-Host ("             {0}" -f $line) -ForegroundColor DarkGray }
+                if ($pushExit -eq 0) {
+                    Write-Host "  git push : OK (pushed to origin)" -ForegroundColor Green
+                } else {
+                    Write-Host "  [WARN] git push failed. Manual intervention required." -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "  [WARN] git commit failed." -ForegroundColor Yellow
+                foreach ($line in $commitOut) { Write-Host ("             {0}" -f $line) -ForegroundColor Yellow }
+            }
+        } else {
+            Write-Host "  git push : no changes in $PcDir/ -> skip" -ForegroundColor DarkGray
+        }
+    } finally { Pop-Location }
+}
+
+Write-Host ("=" * 70) -ForegroundColor DarkGray
