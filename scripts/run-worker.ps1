@@ -26,21 +26,44 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# コンソール出力を UTF-8 に強制（Windows PowerShell 5.1 の Shift-JIS 表示で文字化けするのを回避）
+try {
+    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+} catch {
+    # PowerShell 7 などで失敗しても致命ではない
+}
+
 $workDir = Join-Path $QueueRoot $PcDir
 $inboxDir = Join-Path $workDir "inbox"
 $logFile = Join-Path $workDir ".run-worker.log"
 
 if (-not (Test-Path $workDir)) {
-    Write-Host "ERROR: PC directory not found: $workDir"
+    Write-Host "[ERROR] PC directory not found: $workDir" -ForegroundColor Red
     exit 1
 }
+
+Write-Host ("=" * 70) -ForegroundColor DarkGray
+Write-Host ("[{0}] AILady worker: {1}" -f (Get-Date -Format 'HH:mm:ss'), $PcDir) -ForegroundColor Cyan
+Write-Host ("  work dir : {0}" -f $workDir) -ForegroundColor DarkGray
+Write-Host ("  inbox    : {0}" -f $inboxDir) -ForegroundColor DarkGray
 
 # inbox に処理待ちカード（.md, doneに移動されていないもの）があるか確認
 $pendingCards = Get-ChildItem -Path $inboxDir -Filter "*.md" -File -ErrorAction SilentlyContinue
 if (-not $pendingCards -or $pendingCards.Count -eq 0) {
     "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$PcDir] inbox empty, skip" | Out-File -FilePath $logFile -Append -Encoding utf8
+    Write-Host "  status   : inbox empty -> skip (nothing to do)" -ForegroundColor Yellow
+    Write-Host ("=" * 70) -ForegroundColor DarkGray
     exit 0
 }
+
+Write-Host ("  pending  : {0} card(s)" -f $pendingCards.Count) -ForegroundColor Green
+foreach ($c in $pendingCards) {
+    Write-Host ("             - {0}" -f $c.Name) -ForegroundColor DarkGray
+}
+Write-Host ""
+Write-Host "  Invoking claude (typically 1-3 min). Output streams below:" -ForegroundColor Cyan
+Write-Host ("-" * 70) -ForegroundColor DarkGray
 
 # Claude Code を非対話モードで起動
 $prompt = @"
@@ -62,6 +85,7 @@ inbox/ ディレクトリに未処理のタスクカード（.md）がありま�
 
 "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$PcDir] $($pendingCards.Count) card(s) pending, invoking claude" | Out-File -FilePath $logFile -Append -Encoding utf8
 
+$startTime = Get-Date
 Push-Location $workDir
 try {
     # claude CLI を非対話 (-p / --print) で起動
@@ -70,7 +94,28 @@ try {
     # --add-dir $workDir で作業ディレクトリを明示
     & claude -p $prompt --permission-mode $PermissionMode --add-dir $workDir 2>&1 | Tee-Object -FilePath $logFile -Append
     $exit = $LASTEXITCODE
-    "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$PcDir] claude exited with code $exit" | Out-File -FilePath $logFile -Append -Encoding utf8
+    $elapsed = (Get-Date) - $startTime
+    "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$PcDir] claude exited with code $exit (elapsed $([int]$elapsed.TotalSeconds)s)" | Out-File -FilePath $logFile -Append -Encoding utf8
+
+    Write-Host ("-" * 70) -ForegroundColor DarkGray
+    if ($exit -eq 0) {
+        Write-Host ("[{0}] claude finished OK (elapsed {1:N1}s)" -f (Get-Date -Format 'HH:mm:ss'), $elapsed.TotalSeconds) -ForegroundColor Green
+    } else {
+        Write-Host ("[{0}] claude exited with code {1} (elapsed {2:N1}s)" -f (Get-Date -Format 'HH:mm:ss'), $exit, $elapsed.TotalSeconds) -ForegroundColor Red
+    }
+
+    # 処理後の状態サマリを表示
+    $afterInbox = @(Get-ChildItem -Path $inboxDir -Filter "*.md" -File -ErrorAction SilentlyContinue)
+    $outboxDir = Join-Path $workDir "outbox"
+    $doneDir = Join-Path $workDir "done"
+    $afterOutbox = @(Get-ChildItem -Path $outboxDir -Filter "*.md" -File -ErrorAction SilentlyContinue)
+    $afterDone = @(Get-ChildItem -Path $doneDir -Filter "*.md" -File -ErrorAction SilentlyContinue)
+    Write-Host ("  after    : inbox={0}  outbox={1}  done={2}" -f $afterInbox.Count, $afterOutbox.Count, $afterDone.Count) -ForegroundColor Cyan
+    if ($afterInbox.Count -gt 0) {
+        Write-Host "  WARN     : inbox にカードが残っています（移動忘れ？）" -ForegroundColor Yellow
+        foreach ($c in $afterInbox) { Write-Host ("             - {0}" -f $c.Name) -ForegroundColor Yellow }
+    }
+    Write-Host ("=" * 70) -ForegroundColor DarkGray
 }
 finally {
     Pop-Location
