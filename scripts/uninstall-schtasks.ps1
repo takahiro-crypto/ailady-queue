@@ -4,7 +4,7 @@
 #   PS> .\uninstall-schtasks.ps1
 
 param(
-    [string[]]$Pcs = @("pc1-billing","pc2-expense","pc3-payroll","pc4-hr","pc5-cs","pc6-quote")
+    [string[]]$Pcs = @("role1-billing","role2-expense","role3-payroll","role4-hr","role5-cs","role6-quote")
 )
 
 $ErrorActionPreference = "Stop"

@@ -1,12 +1,12 @@
-﻿# run-worker.ps1 — AILady ワーカー PC 用 Claude Code 起動スクリプト
+﻿# run-worker.ps1 — AILady ロール用 Claude Code 起動スクリプト
 #
 # Windows タスクスケジューラから 5〜10 分おきに呼ぶ想定。
 # inbox/ に新カードがあれば claude -p で非対話処理を起こす。
 #
 # 使い方:
-#   1. このスクリプトを各 PC にコピー（または共有 Drive からシンボリックリンク）
-#   2. 第一引数で PC ディレクトリ名を指定
-#      例: pwsh run-worker.ps1 pc1-billing
+#   1. このスクリプトを 1 PC に配置（または共有 Drive からシンボリックリンク）
+#   2. 第一引数でロールディレクトリ名を指定
+#      例: pwsh run-worker.ps1 role1-billing
 #   3. タスクスケジューラに「5 分おきに起動」のトリガーを設定
 #
 # 環境変数 AILADY_QUEUE_ROOT で ailady-queue のルートを上書き可能。
@@ -47,7 +47,7 @@ $inboxDir = Join-Path $workDir "inbox"
 $logFile = Join-Path $workDir ".run-worker.log"
 
 if (-not (Test-Path $workDir)) {
-    Write-Host "[ERROR] PC directory not found: $workDir" -ForegroundColor Red
+    Write-Host "[ERROR] Role directory not found: $workDir" -ForegroundColor Red
     exit 1
 }
 
@@ -151,7 +151,7 @@ finally {
 if (-not $NoGitSync -and $isGitRepo -and $exit -eq 0) {
     Push-Location $QueueRoot
     try {
-        # この PC のディレクトリ配下に変更があるかチェック
+        # このロールのディレクトリ配下に変更があるかチェック
         $changes = & git status --porcelain "$PcDir" 2>&1
         if ($changes) {
             $changeCount = (@($changes) | Where-Object { $_ }).Count

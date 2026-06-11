@@ -8,10 +8,10 @@ Windows タスクスケジューラから定期実行する PowerShell スクリ
 
 ```pwsh
 # PC1（請求・入金番）を 1 回起動
-pwsh C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1 -PcDir pc1-billing
+pwsh C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1 -PcDir role1-billing
 
 # PC5（問い合わせ番）を 1 回起動
-pwsh -File C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1 -PcDir pc5-cs
+pwsh -File C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1 -PcDir role5-cs
 ```
 
 ### タスクスケジューラへの登録（GUI）
@@ -25,7 +25,7 @@ pwsh -File C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1 -P
    - 「毎日」開始時刻 09:00、「繰り返し間隔 5 分間」「継続時間 12 時間」
 5. 操作タブ：
    - プログラム：`pwsh.exe`（または `powershell.exe`）
-   - 引数：`-NoProfile -ExecutionPolicy Bypass -File "C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1" -PcDir pc1-billing`
+   - 引数：`-NoProfile -ExecutionPolicy Bypass -File "C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1" -PcDir role1-billing`
 6. 条件タブ：
    - 「ネットワーク接続あり」をチェック（Claude API 必須）
 7. 設定タブ：
@@ -53,7 +53,7 @@ cd C:\Users\sugaw\claude-projects\ailady-queue\scripts
 
 ```pwsh
 schtasks /Create /TN "AILady Worker PC1-BILLING" /SC MINUTE /MO 5 `
-  /TR "pwsh -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1' -PcDir pc1-billing" `
+  /TR "pwsh -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\sugaw\claude-projects\ailady-queue\scripts\run-worker.ps1' -PcDir role1-billing" `
   /F
 ```
 
@@ -62,7 +62,7 @@ PC1 〜 PC6 ぶん `/TN` と `-PcDir` を書き換えて繰り返す。
 ### 司令塔（PC0）は登録しない
 
 司令塔は Takahiro が手で操作する想定なので、定期実行スケジュールは作らない。
-必要時に `pc0-commander/` で `claude` を起動する。
+必要時に `commander/` で `claude` を起動する。
 
 ### ログ
 
@@ -71,7 +71,7 @@ PC1 〜 PC6 ぶん `/TN` と `-PcDir` を書き換えて繰り返す。
 
 ```pwsh
 # PC1 の直近 20 行
-Get-Content C:\Users\sugaw\claude-projects\ailady-queue\pc1-billing\.run-worker.log -Tail 20
+Get-Content C:\Users\sugaw\claude-projects\ailady-queue\role1-billing\.run-worker.log -Tail 20
 ```
 
 ## 前提

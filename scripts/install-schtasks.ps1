@@ -1,7 +1,7 @@
-﻿# install-schtasks.ps1 — 6 ワーカー PC ぶんの Windows スケジュールタスクを一括登録
+﻿# install-schtasks.ps1 — 6 ロールぶんの Windows スケジュールタスクを一括登録
 #
-# 各 PC で実行する想定。実行すると以下のタスクが作られる:
-#   "AILady Worker PC1-BILLING" 〜 "AILady Worker PC6-QUOTE"
+# 1 PC で実行する想定。実行すると以下のタスクが作られる:
+#   "AILady Worker ROLE1-BILLING" 〜 "AILady Worker ROLE6-QUOTE"
 #   5 分おきに pwsh で run-worker.ps1 を起動
 #
 # 前提:
@@ -21,7 +21,7 @@
 
 param(
     [string]$QueueRoot = "C:\Users\sugaw\claude-projects\ailady-queue",
-    [string[]]$Pcs = @("pc1-billing","pc2-expense","pc3-payroll","pc4-hr","pc5-cs","pc6-quote"),
+    [string[]]$Pcs = @("role1-billing","role2-expense","role3-payroll","role4-hr","role5-cs","role6-quote"),
     [int]$IntervalMinutes = 5
 )
 
@@ -79,4 +79,4 @@ Write-Host "Done: $success registered, $failed failed."
 Write-Host ""
 Write-Host "Verify with:  schtasks /Query /FO LIST /V | Select-String 'AILady Worker'"
 Write-Host "Disable all:  .\uninstall-schtasks.ps1"
-Write-Host "Run one now:  pwsh -File $script -PcDir pc1-billing"
+Write-Host "Run one now:  pwsh -File $script -PcDir role1-billing"
